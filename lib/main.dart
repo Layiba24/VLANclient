@@ -1,122 +1,258 @@
+// lib/main.dart
+// Web-first main entry for VLC client
+
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+
+// Required for Flutter Web platform view registry
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:ui_web' as ui_web show platformViewRegistry;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'models/playlist_manager.dart';
+import 'models/media_item.dart';
+import 'utils/theme.dart';
+import 'widgets/advanced_video_player.dart';
+import 'widgets/playlist_item.dart';
+
+// Nullable reference to avoid late initialization errors
+html.VideoElement? _webVideoElement;
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (kIsWeb) {
+    const viewId = 'vlc-video-element';
+
+    ui_web.platformViewRegistry.registerViewFactory(
+      viewId,
+      (int id) {
+        final video = html.VideoElement()
+          ..controls = false
+          ..style.width = '100%'
+          ..style.height = '100%'
+          ..style.objectFit = 'contain'
+          ..style.backgroundColor = 'black';
+
+        _webVideoElement = video;
+        return video;
+      },
+    );
+  }
+
+  /// Sample test videos
+  final sampleVideos = [
+    MediaItem(
+      title: 'Big Buck Bunny',
+      url:
+          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    ),
+    MediaItem(
+      title: 'Elephant Dream',
+      url:
+          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    ),
+    MediaItem(
+      title: 'Sample Video',
+      url:
+          'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
+    ),
+  ];
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) {
+        final manager = PlaylistManager();
+        for (final v in sampleVideos) {
+          manager.addItem(v);
+        }
+        return manager;
+      },
+      child: const VLCApp(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class VLCApp extends StatelessWidget {
+  const VLCApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      title: 'VLC Client',
+      theme: VLCTheme.darkTheme,
+      home: const HomePage(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _HomePageState extends State<HomePage> {
+  final String _viewId = 'vlc-video-element';
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  void _playCurrent(PlaylistManager manager) {
+    if (_webVideoElement == null) return;
+    if (manager.playlist.isEmpty) return;
+
+    final item = manager.currentItem;
+    if (item == null) return;
+
+    _webVideoElement!.src = item.url;
+    _webVideoElement!.play();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final playlistManager = Provider.of<PlaylistManager>(context);
+
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('VLC Client'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.clear_all),
+            tooltip: 'Clear playlist',
+            onPressed: () => playlistManager.clear(),
+          ),
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      body: Row(
+        children: [
+          // VIDEO AREA
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: kIsWeb
+                          ? (_webVideoElement == null
+                              ? const Center(child: CircularProgressIndicator())
+                              : AdvancedVideoPlayer(
+                                  viewId: _viewId,
+                                  webVideoElement: _webVideoElement!,
+                                ))
+                          : Container(
+                              color: Colors.black,
+                              child: const Center(
+                                child: Text(
+                                  'Desktop target not supported',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // BASIC CONTROLS
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.play_arrow),
+                        onPressed: () => _playCurrent(playlistManager),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.pause),
+                        onPressed: () => _webVideoElement?.pause(),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.stop),
+                        onPressed: () {
+                          _webVideoElement?.pause();
+                          _webVideoElement?.currentTime = 0;
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          playlistManager.currentItem?.title ??
+                              'No media loaded',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+
+          // PLAYLIST AREA
+          Container(
+            width: 360,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border(
+                left: BorderSide(color: Colors.grey.withOpacity(0.12)),
+              ),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    children: const [
+                      Text(
+                        'Playlist',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Spacer(),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: playlistManager.playlist.length,
+                    itemBuilder: (context, index) {
+                      final item = playlistManager.playlist[index];
+
+                      return PlaylistItem(
+                        item: item,
+                        isSelected: index == playlistManager.currentIndex,
+                        onTap: () {
+                          playlistManager.setCurrentIndex(index);
+                          _playCurrent(playlistManager);
+                        },
+                        onSecondaryTap: (ctx) {
+                          showModalBottomSheet(
+                            context: ctx,
+                            builder: (_) => ListTile(
+                              leading: const Icon(Icons.delete_outline),
+                              title: const Text('Remove'),
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                playlistManager.removeItem(index);
+                              },
+                            ),
+                          );
+                        },
+                        onRemove: () => playlistManager.removeItem(index),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
