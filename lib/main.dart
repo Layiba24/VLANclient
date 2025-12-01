@@ -11,11 +11,15 @@ import 'dart:ui_web' as ui_web show platformViewRegistry;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
 
 import 'models/playlist_manager.dart';
 import 'models/media_item.dart';
 import 'utils/theme.dart';
 import 'widgets/advanced_video_player.dart';
+// Conditional import: use mobile player on non-web, stub on web
+import 'widgets/mobile_video_player.dart'
+    if (dart.library.html) 'widgets/mobile_video_player_web_stub.dart';
 import 'widgets/playlist_item.dart';
 
 // Nullable reference to avoid late initialization errors
@@ -174,6 +178,56 @@ class _HomePageState extends State<HomePage> {
                         onPressed: () {
                           _webVideoElement?.pause();
                           _webVideoElement?.currentTime = 0;
+                        },
+                      ),
+                      // Browse files (web + mobile)
+                      IconButton(
+                        icon: const Icon(Icons.folder_open),
+                        onPressed: () async {
+                          // Web: use HTML input (keeps existing behavior)
+                          if (kIsWeb) {
+                            final input = html.FileUploadInputElement()
+                              ..accept = ".mp4,.mkv,.webm,.mov,.avi"
+                              ..multiple = false;
+
+                            input.onChange.listen((_) {
+                              final files = input.files;
+                              if (files == null || files.isEmpty) return;
+
+                              final file = files.first;
+                              final url =
+                                  html.Url.createObjectUrlFromBlob(file);
+
+                              final pm = Provider.of<PlaylistManager>(context,
+                                  listen: false);
+                              pm.addItem(MediaItem(title: file.name, url: url));
+                              pm.setCurrentIndex(pm.playlist.length - 1);
+                            });
+
+                            input.click();
+                          } else {
+                            // Mobile/Desktop (non-web): use file_picker package
+                            try {
+                              final result = await FilePicker.platform
+                                  .pickFiles(
+                                      type: FileType.video,
+                                      allowMultiple: false);
+                              if (result == null || result.files.isEmpty)
+                                return;
+
+                              final file = result.files.first;
+                              final path = file.path;
+                              final name = file.name;
+                              if (path == null) return;
+
+                              final pm = Provider.of<PlaylistManager>(context,
+                                  listen: false);
+                              pm.addItem(MediaItem(title: name, url: path));
+                              pm.setCurrentIndex(pm.playlist.length - 1);
+                            } catch (e) {
+                              // ignore for now
+                            }
+                          }
                         },
                       ),
                       const SizedBox(width: 8),
