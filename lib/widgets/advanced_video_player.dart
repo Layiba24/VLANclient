@@ -89,7 +89,7 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
       e.preventDefault();
       _dropOverlay.style.display = 'none';
 
-      final files = e.dataTransfer?.files;
+      final files = e.dataTransfer.files;
       if (files == null || files.isEmpty) return;
 
       final file = files.first;

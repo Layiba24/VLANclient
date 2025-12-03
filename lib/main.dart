@@ -16,10 +16,8 @@ import 'package:file_picker/file_picker.dart';
 import 'models/playlist_manager.dart';
 import 'models/media_item.dart';
 import 'utils/theme.dart';
+import 'screens/splash_screen.dart';
 import 'widgets/advanced_video_player.dart';
-// Conditional import: use mobile player on non-web, stub on web
-import 'widgets/mobile_video_player.dart'
-    if (dart.library.html) 'widgets/mobile_video_player_web_stub.dart';
 import 'widgets/playlist_item.dart';
 
 // Nullable reference to avoid late initialization errors
@@ -80,15 +78,31 @@ void main() {
   );
 }
 
-class VLCApp extends StatelessWidget {
+class VLCApp extends StatefulWidget {
   const VLCApp({super.key});
+
+  @override
+  State<VLCApp> createState() => _VLCAppState();
+}
+
+class _VLCAppState extends State<VLCApp> {
+  bool _showSplash = true;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'VLC Client',
       theme: VLCTheme.darkTheme,
-      home: const HomePage(),
+      home: _showSplash
+          ? SplashScreen(
+              displayDuration: const Duration(seconds: 3),
+              onComplete: () {
+                setState(() {
+                  _showSplash = false;
+                });
+              },
+            )
+          : const HomePage(),
       debugShowCheckedModeBanner: false,
     );
   }

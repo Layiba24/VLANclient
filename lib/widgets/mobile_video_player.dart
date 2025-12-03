@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/playlist_manager.dart';
-import '../models/media_item.dart';
 
 class MobileVideoPlayer extends StatefulWidget {
   const MobileVideoPlayer({super.key});
