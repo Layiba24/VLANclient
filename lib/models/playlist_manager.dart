@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'media_item.dart';
 
 class PlaylistManager extends ChangeNotifier {
-  List<MediaItem> _playlist = [];
+  final List<MediaItem> _playlist = [];
   int _currentIndex = 0;
   bool _isPlaying = false;
   bool _loop = false;
@@ -13,10 +13,18 @@ class PlaylistManager extends ChangeNotifier {
   bool get isPlaying => _isPlaying;
   bool get loop => _loop;
   bool get shuffle => _shuffle;
-  MediaItem? get currentItem => _playlist.isEmpty ? null : _playlist[_currentIndex];
+  MediaItem? get currentItem =>
+      _playlist.isEmpty ? null : _playlist[_currentIndex];
 
   void addItem(MediaItem item) {
     _playlist.add(item);
+    notifyListeners();
+  }
+
+  /// Update an existing item at [index]. Used to attach thumbnails/metadata.
+  void updateItem(int index, MediaItem newItem) {
+    if (index < 0 || index >= _playlist.length) return;
+    _playlist[index] = newItem;
     notifyListeners();
   }
 
@@ -40,7 +48,8 @@ class PlaylistManager extends ChangeNotifier {
   void next() {
     if (_playlist.isEmpty) return;
     if (_shuffle) {
-      _currentIndex = (DateTime.now().millisecondsSinceEpoch % _playlist.length);
+      _currentIndex =
+          (DateTime.now().millisecondsSinceEpoch % _playlist.length);
     } else {
       _currentIndex = (_currentIndex + 1) % _playlist.length;
     }
@@ -50,7 +59,8 @@ class PlaylistManager extends ChangeNotifier {
   void previous() {
     if (_playlist.isEmpty) return;
     if (_shuffle) {
-      _currentIndex = (DateTime.now().millisecondsSinceEpoch % _playlist.length);
+      _currentIndex =
+          (DateTime.now().millisecondsSinceEpoch % _playlist.length);
     } else {
       _currentIndex = (_currentIndex - 1 + _playlist.length) % _playlist.length;
     }

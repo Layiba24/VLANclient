@@ -5,10 +5,10 @@ class SplashScreen extends StatefulWidget {
   final VoidCallback onComplete;
 
   const SplashScreen({
-    Key? key,
+    super.key,
     this.displayDuration = const Duration(seconds: 15),
     required this.onComplete,
-  }) : super(key: key);
+  });
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();

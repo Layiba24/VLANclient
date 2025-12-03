@@ -3,28 +3,28 @@ import 'package:flutter/material.dart';
 
 class VideoPlayer extends StatelessWidget {
   final String viewId;
-  final Function(html.File) onFileAccepted;
+  final Function(DragTargetDetails<html.File>) onFileAccepted;
 
   const VideoPlayer({
-    Key? key,
+    super.key,
     required this.viewId,
     required this.onFileAccepted,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return DragTarget<html.File>(
-      onWillAccept: (data) => true,
-      onAccept: onFileAccepted,
+      onWillAcceptWithDetails: (data) => true,
+      onAcceptWithDetails: (details) => onFileAccepted(details),
       builder: (context, candidateData, rejectedData) {
         return Container(
           decoration: BoxDecoration(
             color: Colors.black,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: candidateData.isNotEmpty 
-                ? Theme.of(context).colorScheme.primary 
-                : Colors.white12,
+              color: candidateData.isNotEmpty
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.white12,
               width: candidateData.isNotEmpty ? 2 : 1,
             ),
           ),

@@ -264,8 +264,9 @@ class _HomePageState extends State<HomePage> {
                                   .pickFiles(
                                       type: FileType.video,
                                       allowMultiple: false);
-                              if (result == null || result.files.isEmpty)
+                              if (result == null || result.files.isEmpty) {
                                 return;
+                              }
 
                               final file = result.files.first;
                               final path = file.path;

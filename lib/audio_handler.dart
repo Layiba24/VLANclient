@@ -3,6 +3,7 @@
 /// To enable full audio service features, add these dependencies to pubspec.yaml:
 /// - audio_service: ^0.18.0+
 /// - just_audio: ^0.9.0+
+library;
 
 class MyAudioHandler {
   bool _isPlaying = false;

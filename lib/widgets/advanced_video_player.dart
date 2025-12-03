@@ -1,6 +1,7 @@
 // lib/widgets/advanced_video_player.dart
 
 import 'dart:async';
+import 'dart:convert';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 
@@ -31,6 +32,8 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
   double _volume = 0.8;
   Timer? _pollTimer;
   PlaylistManager? _manager;
+  String? _currentThumbnail;
+  bool _thumbnailLoaded = false;
 
   late html.DivElement _dropOverlay;
 
@@ -63,8 +66,8 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
     _manager = Provider.of<PlaylistManager>(context, listen: false);
     _manager?.addListener(_onPlaylistChanged);
 
-    _pollTimer =
-        Timer.periodic(const Duration(milliseconds: 150), (_) => setState(() {}));
+    _pollTimer = Timer.periodic(
+        const Duration(milliseconds: 150), (_) => setState(() {}));
 
     // Drag and Drop overlay
     _dropOverlay = html.DivElement()
@@ -122,7 +125,55 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
     if (item == null) return;
 
     _video.src = item.url;
+    _currentThumbnail = item.thumbnailUrl;
+    _thumbnailLoaded = item.thumbnailUrl != null;
+
+    // If no thumbnail yet, extract one asynchronously (web only here)
+    if (!_thumbnailLoaded && kIsWeb && item.url.startsWith('http')) {
+      final idx = _manager?.currentIndex ?? 0;
+      _generateWebThumbnail(item, idx);
+    }
+
     _attemptPlay(_video);
+  }
+
+  void _generateWebThumbnail(MediaItem item, int index) async {
+    try {
+      final off = html.VideoElement()
+        ..src = item.url
+        ..crossOrigin = 'anonymous'
+        ..muted = true
+        ..preload = 'auto'
+        ..style.display = 'none';
+
+      html.document.body!.append(off);
+
+      await off.onLoadedData.first;
+
+      // Seek to 0.5s (if available)
+      try {
+        off.currentTime = off.duration > 1 ? 1 : 0.5;
+      } catch (_) {}
+
+      // wait a bit for the frame
+      await Future.delayed(const Duration(milliseconds: 250));
+
+      final canvas =
+          html.CanvasElement(width: off.videoWidth, height: off.videoHeight);
+      final ctx = canvas.context2D;
+      ctx.drawImageScaled(off, 0, 0, canvas.width!, canvas.height!);
+      final dataUrl = canvas.toDataUrl('image/png');
+
+      // update playlist item with thumbnail
+      final newItem = item.copyWith(thumbnailUrl: dataUrl);
+      _manager?.updateItem(index, newItem);
+
+      // cleanup
+      try {
+        off.remove();
+        canvas.remove();
+      } catch (_) {}
+    } catch (_) {}
   }
 
   String _formatTime(num n) {
@@ -131,6 +182,24 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
     final m = s ~/ 60;
     final sec = s % 60;
     return "${m.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}";
+  }
+
+  Widget _buildThumbnailImage(String thumbnailUrl) {
+    // Handle data URLs (base64 encoded images)
+    if (thumbnailUrl.startsWith('data:')) {
+      try {
+        // Extract base64 data from data URL
+        final base64Data = thumbnailUrl.split(',').last;
+        final bytes = base64Decode(base64Data);
+        return Image.memory(bytes,
+            fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container());
+      } catch (_) {
+        return Container();
+      }
+    }
+    // Handle network URLs
+    return Image.network(thumbnailUrl,
+        fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container());
   }
 
   void _toggleFullscreen() {
@@ -150,8 +219,36 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
       onDoubleTap: _toggleFullscreen,
       child: Stack(
         children: [
+          // Video player
           Positioned.fill(child: HtmlElementView(viewType: widget.viewId)),
 
+          // Thumbnail overlay (shown while loading)
+          if (_currentThumbnail != null && !_isPlaying)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black,
+                child: _buildThumbnailImage(_currentThumbnail!),
+              ),
+            ),
+
+          // Loading spinner (shown if no thumbnail and not playing)
+          if (!_isPlaying && (_currentThumbnail == null || !_thumbnailLoaded))
+            Positioned.fill(
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation(Colors.orange),
+                  ),
+                ),
+              ),
+            ),
+
+          // Controls overlay
           Positioned(
             left: 0,
             right: 0,
@@ -226,8 +323,8 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
 
                       // File picker
                       IconButton(
-                        icon: const Icon(Icons.folder_open,
-                            color: Colors.white),
+                        icon:
+                            const Icon(Icons.folder_open, color: Colors.white),
                         onPressed: () {
                           final input = html.FileUploadInputElement()
                             ..accept = ".mp4,.mkv,.webm,.mov,.avi";
@@ -237,8 +334,7 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
                             if (files == null || files.isEmpty) return;
 
                             final file = files.first;
-                            final url =
-                                html.Url.createObjectUrlFromBlob(file);
+                            final url = html.Url.createObjectUrlFromBlob(file);
 
                             final pm = Provider.of<PlaylistManager>(context,
                                 listen: false);
@@ -253,8 +349,7 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
 
                       // Fullscreen
                       IconButton(
-                        icon: const Icon(Icons.fullscreen,
-                            color: Colors.white),
+                        icon: const Icon(Icons.fullscreen, color: Colors.white),
                         onPressed: _toggleFullscreen,
                       ),
                     ],

@@ -11,13 +11,13 @@ class PlaylistItem extends StatelessWidget {
   final Function(BuildContext) onSecondaryTap;
 
   const PlaylistItem({
-    Key? key,
+    super.key,
     required this.item,
     required this.isSelected,
     required this.onTap,
     required this.onSecondaryTap,
     this.onRemove,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +28,29 @@ class PlaylistItem extends StatelessWidget {
         selected: isSelected,
         selectedTileColor:
             Theme.of(context).colorScheme.primary.withOpacity(0.2),
-        leading: Icon(
-          isSelected ? Icons.play_circle_filled : Icons.play_circle_outline,
-          color: isSelected ? Theme.of(context).colorScheme.primary : null,
-        ),
+        leading: item.thumbnailUrl != null
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.network(
+                  item.thumbnailUrl!,
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 48,
+                    height: 48,
+                    color: Colors.grey[800],
+                    child: Icon(
+                      isSelected ? Icons.play_circle_filled : Icons.play_circle_outline,
+                      color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                    ),
+                  ),
+                ),
+              )
+            : Icon(
+                isSelected ? Icons.play_circle_filled : Icons.play_circle_outline,
+                color: isSelected ? Theme.of(context).colorScheme.primary : null,
+              ),
         title: Text(
           item.title,
           style: TextStyle(

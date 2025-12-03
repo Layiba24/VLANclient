@@ -5,13 +5,13 @@ class VideoSettings extends ChangeNotifier {
   double _playbackRate = 1.0;
   String _aspectRatio = 'auto';
   bool _isFullscreen = false;
-  Map<String, bool> _videoEffects = {
+  final Map<String, bool> _videoEffects = {
     'brightness': false,
     'contrast': false,
     'saturation': false,
     'hue': false,
   };
-  Map<String, double> _videoEffectValues = {
+  final Map<String, double> _videoEffectValues = {
     'brightness': 0.0,
     'contrast': 1.0,
     'saturation': 1.0,

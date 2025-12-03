@@ -15,7 +15,7 @@ class SubtitleTrack {
 }
 
 class SubtitleManager extends ChangeNotifier {
-  List<SubtitleTrack> _tracks = [];
+  final List<SubtitleTrack> _tracks = [];
   int? _currentTrackIndex;
   bool _enabled = false;
   double _delay = 0; // in seconds

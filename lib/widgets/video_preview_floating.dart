@@ -7,11 +7,11 @@ class VideoPreviewFloating extends StatelessWidget {
   final VoidCallback onClose;
 
   const VideoPreviewFloating({
-    Key? key,
+    super.key,
     required this.currentItem,
     required this.isPlaying,
     required this.onClose,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

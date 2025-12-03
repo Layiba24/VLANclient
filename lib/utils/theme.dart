@@ -8,7 +8,6 @@ class VLCTheme {
       primary: const Color(0xFFF48B00),
       secondary: const Color(0xFFF48B00),
       surface: const Color(0xFF232323),
-      background: const Color(0xFF1A1A1A),
     ),
     sliderTheme: SliderThemeData(
       activeTrackColor: const Color(0xFFF48B00),
