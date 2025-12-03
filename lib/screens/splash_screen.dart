@@ -6,7 +6,7 @@ class SplashScreen extends StatefulWidget {
 
   const SplashScreen({
     Key? key,
-    this.displayDuration = const Duration(seconds: 3),
+    this.displayDuration = const Duration(seconds: 15),
     required this.onComplete,
   }) : super(key: key);
 
@@ -98,11 +98,11 @@ class _SplashScreenState extends State<SplashScreen>
 
                 // App Name
                 const Text(
-                  'VLC Client',
+                  'Videuno',
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Color.fromARGB(255, 202, 181, 39),
                   ),
                 ),
                 const SizedBox(height: 12),

@@ -91,7 +91,7 @@ class _VLCAppState extends State<VLCApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'VLC Client',
+      title: 'Videuno',
       theme: VLCTheme.darkTheme,
       home: _showSplash
           ? SplashScreen(
@@ -135,7 +135,7 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('VLC Client'),
+        title: const Text('Videuno'),
         actions: [
           IconButton(
             icon: const Icon(Icons.clear_all),
