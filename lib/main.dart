@@ -19,6 +19,7 @@ import 'utils/theme.dart';
 import 'screens/splash_screen.dart';
 import 'widgets/advanced_video_player.dart';
 import 'widgets/playlist_item.dart';
+import 'widgets/video_preview_floating.dart';
 
 // Nullable reference to avoid late initialization errors
 html.VideoElement? _webVideoElement;
@@ -117,6 +118,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final String _viewId = 'vlc-video-element';
+  bool _isPlaying = false;
+  bool _showPreview = true;
 
   void _playCurrent(PlaylistManager manager) {
     if (_webVideoElement == null) return;
@@ -144,7 +147,9 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Row(
+      body: Stack(
+        children: [
+          Row(
         children: [
           // VIDEO AREA
           Expanded(
@@ -156,22 +161,49 @@ class _HomePageState extends State<HomePage> {
                   Expanded(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: kIsWeb
-                          ? (_webVideoElement == null
-                              ? const Center(child: CircularProgressIndicator())
-                              : AdvancedVideoPlayer(
-                                  viewId: _viewId,
-                                  webVideoElement: _webVideoElement!,
-                                ))
-                          : Container(
-                              color: Colors.black,
-                              child: const Center(
+                      child: Container(
+                        color: Colors.black,
+                        child: kIsWeb
+                            ? (_webVideoElement == null
+                                ? const Center(
+                                    child: CircularProgressIndicator(
+                                      valueColor:
+                                          AlwaysStoppedAnimation<Color>(
+                                        Colors.orange,
+                                      ),
+                                    ),
+                                  )
+                                : Stack(
+                                    children: [
+                                      AdvancedVideoPlayer(
+                                        viewId: _viewId,
+                                        webVideoElement: _webVideoElement!,
+                                      ),
+                                      // Play button overlay when paused
+                                      if (!_isPlaying)
+                                        Center(
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Colors.black.withOpacity(0.5),
+                                            ),
+                                            padding: const EdgeInsets.all(16),
+                                            child: Icon(
+                                              Icons.play_arrow,
+                                              size: 64,
+                                              color: Colors.orange.shade400,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ))
+                            : const Center(
                                 child: Text(
                                   'Desktop target not supported',
                                   style: TextStyle(color: Colors.white),
                                 ),
                               ),
-                            ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -181,11 +213,17 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.play_arrow),
-                        onPressed: () => _playCurrent(playlistManager),
+                        onPressed: () {
+                          setState(() => _isPlaying = true);
+                          _playCurrent(playlistManager);
+                        },
                       ),
                       IconButton(
                         icon: const Icon(Icons.pause),
-                        onPressed: () => _webVideoElement?.pause(),
+                        onPressed: () {
+                          setState(() => _isPlaying = false);
+                          _webVideoElement?.pause();
+                        },
                       ),
                       IconButton(
                         icon: const Icon(Icons.stop),
@@ -319,6 +357,19 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
+        ],
+          ),
+          // Floating preview
+          if (_showPreview)
+            VideoPreviewFloating(
+              currentItem: playlistManager.currentItem,
+              isPlaying: _isPlaying,
+              onClose: () {
+                setState(() {
+                  _showPreview = false;
+                });
+              },
+            ),
         ],
       ),
     );
